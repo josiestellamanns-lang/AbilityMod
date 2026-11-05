@@ -1,6 +1,7 @@
 package com.abilitymod.client;
 
 import com.abilitymod.Ability;
+import com.abilitymod.AbilitySettings;
 import com.abilitymod.SabotageType;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
@@ -29,6 +30,14 @@ public final class ClientState {
 
     /** UUIDs of mobs this player has tamed. */
     public static final Set<UUID> TAMED = new HashSet<>();
+
+    /** entity id -> time (ms) when the ice melts */
+    public static final Map<Integer, Long> FROZEN = new HashMap<>();
+    /** players that are not drawn at all (Decoy) */
+    public static final Set<Integer> HIDDEN = new HashSet<>();
+
+    /** Current ability settings from the server ("ability.setting" -> value). */
+    public static final Map<String, Double> SETTINGS = new HashMap<>();
 
     public static String bannerText;
     public static int bannerColor;
@@ -115,11 +124,70 @@ public final class ClientState {
         return 1f + c3 * f * f * f + c1 * f * f;
     }
 
+    public static void setFrozen(int entityId, int ticks) {
+        if (ticks <= 0) {
+            FROZEN.remove(entityId);
+            return;
+        }
+        FROZEN.put(entityId, Util.getMeasuringTimeMs() + ticks * 50L);
+        var me = net.minecraft.client.MinecraftClient.getInstance().player;
+        if (me != null && me.getId() == entityId) banner("You're frozen!", 0x9AD8FF);
+    }
+
+    public static boolean isFrozen(int entityId) {
+        Long end = FROZEN.get(entityId);
+        if (end == null) return false;
+        if (end < Util.getMeasuringTimeMs()) {
+            FROZEN.remove(entityId);
+            return false;
+        }
+        return true;
+    }
+
+    public static boolean isSelfFrozen() {
+        var me = net.minecraft.client.MinecraftClient.getInstance().player;
+        return me != null && isFrozen(me.getId());
+    }
+
+    public static long selfFrozenLeftMs() {
+        var me = net.minecraft.client.MinecraftClient.getInstance().player;
+        if (me == null) return 0;
+        Long end = FROZEN.get(me.getId());
+        return end == null ? 0 : Math.max(0, end - Util.getMeasuringTimeMs());
+    }
+
+    public static void setHidden(int entityId, int hidden) {
+        if (hidden != 0) HIDDEN.add(entityId);
+        else HIDDEN.remove(entityId);
+    }
+
+    public static double setting(Ability a, AbilitySettings.Def d) {
+        return SETTINGS.getOrDefault(AbilitySettings.key(a, d.name()), d.def());
+    }
+
+    public static void putSetting(Ability a, AbilitySettings.Def d, double value) {
+        SETTINGS.put(AbilitySettings.key(a, d.name()), value);
+    }
+
+    public static void applySettings(String data) {
+        SETTINGS.clear();
+        for (String part : data.split(";")) {
+            int eq = part.indexOf('=');
+            if (eq < 0) continue;
+            try {
+                SETTINGS.put(part.substring(0, eq), Double.parseDouble(part.substring(eq + 1)));
+            } catch (NumberFormatException ignored) {
+            }
+        }
+    }
+
     public static void reset() {
         mask = 0;
         MORPHS.clear();
         MORPH_START.clear();
         TAMED.clear();
+        FROZEN.clear();
+        HIDDEN.clear();
         bannerText = null;
         flashStart = 0;
         for (int i = 0; i < cdEnd.length; i++) {

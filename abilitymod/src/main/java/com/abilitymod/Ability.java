@@ -1,18 +1,20 @@
 package com.abilitymod;
 
+/** New abilities are always added at the END so saved player data stays valid. */
 public enum Ability {
-    BLOCK_MORPH("block_morph", "Block Morph", 20),
-    MOB_TAMER("mob_tamer", "Mob Tamer", 100),
-    SABOTAGE("sabotage", "Sabotage", 300);
+    BLOCK_MORPH("block_morph", "Block Morph"),
+    MOB_TAMER("mob_tamer", "Mob Tamer"),
+    SABOTAGE("sabotage", "Sabotage"),
+    DECOY("decoy", "Decoy"),
+    FREEZE("freeze", "Freeze"),
+    GRAPPLE("grapple", "Grapple");
 
     public final String id;
     public final String displayName;
-    public final int cooldownTicks;
 
-    Ability(String id, String displayName, int cooldownTicks) {
+    Ability(String id, String displayName) {
         this.id = id;
         this.displayName = displayName;
-        this.cooldownTicks = cooldownTicks;
     }
 
     public int bit() {

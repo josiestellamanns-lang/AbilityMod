@@ -1,34 +1,25 @@
 # Abilities (Fabric, Minecraft 1.21.1)
 
-Commands (need op / permission level 2):
-- `/ability give <player> <block_morph|mob_tamer|sabotage|all>`
-- `/ability remove <player> <ability|all>`
-- `/ability list <player>`
-- `/abitity ...` also works (typo alias)
+## Commands (ops only)
+- `/ability give <player> <ability|all>`  /  `/ability remove <player> <ability|all>`  /  `/ability list <player>`
+- `/abilities settings` opens the settings screen
+- `/abilities` and `/abitity` work as aliases for `/ability`
 
-Everyone starts with no abilities. Keys are in Options > Controls > Key Binds > "Abilities"
-(defaults: G = Block Morph, H = Tame Mob, K = Sabotage menu).
+Everyone starts with no abilities. Keybinds are under Options > Controls > Key Binds > "Abilities".
 
-## Build the .jar with GitHub (no installs)
-1. Make a free GitHub account and a new repository.
-2. Upload ALL files from this folder (keep the folder structure). The `.github/workflows/build.yml`
-   file must be included. If your PC hides the .github folder, instead click "Add file > Create new file",
-   type `.github/workflows/build.yml` as the name and paste the contents.
-3. Open the repo's **Actions** tab. The build starts automatically (~2-3 min).
-4. Click the finished run, then download **abilitymod-jar** at the bottom. Unzip it: the .jar inside goes in your `mods` folder.
+| Ability | Key | What it does |
+|---|---|---|
+| Block Morph | G | Become the block you look at. Press again (look anywhere) to change back. No shadow while morphed. |
+| Mob Tamer | H | Look at any mob. Free and unlimited. Tamed mobs follow you, fight for you and never target you. Peaceful mobs fight like wolves. |
+| Sabotage | K | Menu with Players / Entities / Tamed tabs. Pick a target and a harmful or helpful effect, press GO. |
+| Decoy | B | A fake copy of you sprint-jumps the way you face while you are hidden for 10 s. |
+| Freeze | V | Everything alive within 5 blocks (not you, not your pets) is frozen in ice for 5 s. |
+| Grapple | C | Aim at a block and get pulled to it at ~20 blocks/s. Sneak to let go. |
 
-## Build locally instead
-Install JDK 21 and Gradle 8.10+, then run `gradle build`. The jar is in `build/libs/abilitymod-1.0.0.jar`.
+## Settings screen
+`/abilities settings` shows every ability on the left and its settings on the right (cooldown, range, speed, duration...).
+Type a number and press Enter, or use - / +. "Reset" puts a setting back to its default. Changes apply to everyone on the server.
 
-Needs Fabric Loader 0.16+ and Fabric API for 1.21.1. Install the mod on the server AND on every player's client.
-
-## How the abilities work
-- **Block Morph**: press the key while looking at a block to become it. Press the SAME key again (look anywhere) to change back.
-- **Mob Tamer**: look at any mob and press the key. Free and unlimited, with a heart animation. Tamed mobs follow you like dogs
-  and attack whatever you hit (players included) or whatever hits you. They never hurt you or each other.
-- **Sabotage**: press the key to open the menu. Tabs: Players / Entities / Tamed. Pick a target, pick an effect
-  (Harmful or Helpful), press GO.
-
-## Tweaks
-- Effect types/durations: `SabotageType.java` (20 ticks = 1 second)
-- Cooldowns: `Ability.java`
+## Build
+Push to GitHub; the Actions tab builds the jar (see .github/workflows). Or run `gradle build` with JDK 21.
+Needs Fabric Loader 0.16+ and Fabric API for 1.21.1, on the server and every client.

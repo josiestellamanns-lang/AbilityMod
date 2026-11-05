@@ -2,6 +2,12 @@
   "required": true,
   "package": "com.abilitymod.mixin.client",
   "compatibilityLevel": "JAVA_21",
-  "client": ["PlayerRendererMixin"],
+  "client": [
+    "PlayerRendererMixin",
+    "LivingEntityRendererMixin",
+    "KeyboardInputMixin",
+    "EntityLookMixin",
+    "EntityInvisibleMixin"
+  ],
   "injectors": { "defaultRequire": 1 }
 }

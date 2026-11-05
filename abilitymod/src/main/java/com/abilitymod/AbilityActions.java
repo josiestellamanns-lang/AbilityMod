@@ -7,11 +7,13 @@ import net.minecraft.block.Block;
 import net.minecraft.block.BlockRenderType;
 import net.minecraft.block.BlockState;
 import net.minecraft.entity.Entity;
+import net.minecraft.entity.attribute.EntityAttributes;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.effect.StatusEffectInstance;
 import net.minecraft.entity.mob.MobEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.projectile.ProjectileUtil;
+import net.minecraft.network.packet.CustomPayload;
 import net.minecraft.particle.BlockStateParticleEffect;
 import net.minecraft.particle.ParticleTypes;
 import net.minecraft.server.MinecraftServer;
@@ -21,6 +23,7 @@ import net.minecraft.sound.SoundCategory;
 import net.minecraft.sound.SoundEvents;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
+import net.minecraft.util.Hand;
 import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.hit.EntityHitResult;
 import net.minecraft.util.hit.HitResult;
@@ -37,6 +40,7 @@ public final class AbilityActions {
 
     private static final Map<UUID, BlockState> MORPHS = new HashMap<>();
     private static final Map<String, Integer> COOLDOWN_END = new HashMap<>();
+    private static final Map<UUID, Integer> NEXT_ATTACK = new HashMap<>();
 
     // ------------------------------------------------------------------ setup
     public static void register() {
@@ -46,6 +50,9 @@ public final class AbilityActions {
             if (a == null || !has(player, a)) return;
             if (a == Ability.BLOCK_MORPH) morph(player);
             else if (a == Ability.MOB_TAMER) tame(player);
+            else if (a == Ability.DECOY) ExtraAbilities.decoy(player);
+            else if (a == Ability.FREEZE) ExtraAbilities.freeze(player);
+            else if (a == Ability.GRAPPLE) ExtraAbilities.grapple(player);
         });
 
         ServerPlayNetworking.registerGlobalReceiver(Payloads.Sabotage.ID, (payload, ctx) -> {
@@ -61,17 +68,24 @@ public final class AbilityActions {
             applyEffect(player, target, type);
         });
 
+        ServerPlayNetworking.registerGlobalReceiver(Payloads.ChangeSetting.ID,
+                (payload, ctx) -> AbilitySettings.handleChange(ctx.player(), payload.key(), payload.value()));
+
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
             ServerPlayerEntity p = handler.player;
             sync(p, 0);
             sendTamed(p);
+            ExtraAbilities.syncHiddenTo(p, server);
             for (ServerPlayerEntity other : server.getPlayerManager().getPlayerList()) {
                 BlockState st = MORPHS.get(other.getUuid());
                 if (st != null) ServerPlayNetworking.send(p, new Payloads.Morph(other.getId(), Block.getRawIdFromState(st)));
             }
         });
 
-        ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> clearMorph(handler.player));
+        ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
+            clearMorph(handler.player);
+            ExtraAbilities.onPlayerGone(handler.player);
+        });
 
         // Tamed mobs and their owner never hurt each other.
         ServerLivingEntityEvents.ALLOW_DAMAGE.register((entity, source, amount) -> {
@@ -86,10 +100,12 @@ public final class AbilityActions {
         ServerLivingEntityEvents.AFTER_DEATH.register((entity, source) -> {
             if (entity instanceof ServerPlayerEntity p) {
                 clearMorph(p);
+                ExtraAbilities.onPlayerGone(p);
             } else if (entity.getServer() != null) {
                 AbilityData d = AbilityData.get(entity.getServer());
                 UUID owner = d.ownerOf(entity.getUuid());
                 d.untame(entity.getUuid());
+                NEXT_ATTACK.remove(entity.getUuid());
                 if (owner != null) {
                     ServerPlayerEntity op = entity.getServer().getPlayerManager().getPlayer(owner);
                     if (op != null) sendTamed(op);
@@ -103,7 +119,7 @@ public final class AbilityActions {
         return AbilityData.get(p.getServer()).has(p.getUuid(), a);
     }
 
-    private static void msg(ServerPlayerEntity p, String text, Formatting color) {
+    public static void msg(ServerPlayerEntity p, String text, Formatting color) {
         p.sendMessage(Text.literal(text).formatted(color), true);
     }
 
@@ -130,7 +146,7 @@ public final class AbilityActions {
         return p.getUuid() + ":" + a.id;
     }
 
-    private static boolean onCooldown(ServerPlayerEntity p, Ability a) {
+    public static boolean onCooldown(ServerPlayerEntity p, Ability a) {
         int left = COOLDOWN_END.getOrDefault(key(p, a), 0) - p.getServer().getTicks();
         if (left > 0) {
             msg(p, a.displayName + " ready in " + (left / 20 + 1) + "s", Formatting.RED);
@@ -139,13 +155,14 @@ public final class AbilityActions {
         return false;
     }
 
-    private static void startCooldown(ServerPlayerEntity p, Ability a) {
-        COOLDOWN_END.put(key(p, a), p.getServer().getTicks() + a.cooldownTicks);
-        ServerPlayNetworking.send(p, new Payloads.Cooldown(a.ordinal(), a.cooldownTicks));
+    public static void startCooldown(ServerPlayerEntity p, Ability a) {
+        int ticks = AbilitySettings.cooldownTicks(p.getServer(), a);
+        COOLDOWN_END.put(key(p, a), p.getServer().getTicks() + ticks);
+        ServerPlayNetworking.send(p, new Payloads.Cooldown(a.ordinal(), ticks));
     }
 
     // ------------------------------------------------------------------ block morph
-    private static void broadcast(MinecraftServer server, Payloads.Morph payload) {
+    public static void broadcast(MinecraftServer server, CustomPayload payload) {
         for (ServerPlayerEntity p : server.getPlayerManager().getPlayerList()) ServerPlayNetworking.send(p, payload);
     }
 
@@ -173,7 +190,7 @@ public final class AbilityActions {
 
         if (onCooldown(player, Ability.BLOCK_MORPH)) return;
 
-        HitResult hit = player.raycast(6.0, 0f, false);
+        HitResult hit = player.raycast(AbilitySettings.get(player.getServer(), Ability.BLOCK_MORPH, "range"), 0f, false);
         if (hit.getType() != HitResult.Type.BLOCK) {
             msg(player, "Look at a block to morph into it", Formatting.YELLOW);
             return;
@@ -201,7 +218,7 @@ public final class AbilityActions {
     private static void tame(ServerPlayerEntity player) {
         if (onCooldown(player, Ability.MOB_TAMER)) return;
         AbilityData data = AbilityData.get(player.getServer());
-        double range = 16;
+        double range = AbilitySettings.get(player.getServer(), Ability.MOB_TAMER, "range");
         Vec3d start = player.getEyePos();
         Vec3d look = player.getRotationVec(1f);
         Vec3d end = start.add(look.multiply(range));
@@ -225,21 +242,25 @@ public final class AbilityActions {
         mob.setCustomName(Text.literal(player.getName().getString() + "'s ").append(mob.getType().getName()));
         mob.setCustomNameVisible(true);
 
-        // heart animation
-        Fx.spiral(world, mob, ParticleTypes.HEART, 30);
-        world.spawnParticles(ParticleTypes.HEART, mob.getX(), mob.getBodyY(0.8), mob.getZ(), 14, 0.4, 0.4, 0.4, 0.02);
-        world.playSound(null, mob.getBlockPos(), SoundEvents.ENTITY_PLAYER_LEVELUP, SoundCategory.NEUTRAL, 0.7f, 1.2f);
+        // "you tamed it" animation: hearts spiral up, a ring of hearts spreads out, sparkle burst, happy hop
+        Fx.spiral(world, mob, ParticleTypes.HEART, 40);
+        Fx.ring(world, mob, ParticleTypes.HEART, 24, 1.8);
+        world.spawnParticles(ParticleTypes.TOTEM_OF_UNDYING, mob.getX(), mob.getBodyY(0.6), mob.getZ(), 30, 0.3, 0.5, 0.3, 0.4);
+        mob.setVelocity(0.0, 0.35, 0.0);
+        mob.velocityModified = true;
+        world.playSound(null, mob.getBlockPos(), SoundEvents.ENTITY_PLAYER_LEVELUP, SoundCategory.NEUTRAL, 0.8f, 1.3f);
 
-        msg(player, "Tamed " + mob.getType().getName().getString() + "!", Formatting.GREEN);
+        ServerPlayNetworking.send(player, new Payloads.Banner("Tamed " + mob.getType().getName().getString() + "!", 0xFF7AA8));
         sendTamed(player);
         startCooldown(player, Ability.MOB_TAMER);
     }
 
     /**
      * Dog-like behaviour, runs every 2 ticks:
-     * - follows the owner (teleports if far away)
+     * - follows the owner (teleports if far away) and shows an occasional heart
      * - attacks whatever the owner hits, and whatever hits the owner (players included)
-     * - never targets the owner or other mobs tamed by the same owner
+     * - never targets the owner or the owner's other tamed mobs (see MobEntityMixin)
+     * - peaceful mobs (pigs, cows, sheep...) fight like wolves
      */
     public static void tickTamed(MinecraftServer server) {
         if (server.getTicks() % 2 != 0) return;
@@ -250,26 +271,59 @@ public final class AbilityActions {
             ServerPlayerEntity owner = server.getPlayerManager().getPlayer(en.getValue());
             if (owner == null || mob.getWorld() != owner.getWorld()) continue;
 
-            LivingEntity target = mob.getTarget();
-            if (target != null && friendly(data, owner, target)) {
-                mob.setTarget(null);
-                target = null;
+            // a heart every few seconds so you can tell which mobs are yours
+            if (Math.floorMod(server.getTicks() + en.getKey().hashCode(), 80) < 2) {
+                ((ServerWorld) mob.getWorld()).spawnParticles(ParticleTypes.HEART,
+                        mob.getX(), mob.getBodyY(1.1), mob.getZ(), 1, 0.2, 0.1, 0.2, 0.0);
             }
+
+            // safety net: never keep the owner (or their pets) as a target
+            LivingEntity target = mob.getTarget();
+            if (target != null && friendly(data, owner, target)) mob.setTarget(null);
 
             // whatever the owner hit most recently, else whatever hit the owner
             LivingEntity want = owner.getAttacking();
             if (want == null || !want.isAlive() || friendly(data, owner, want)) want = owner.getAttacker();
-            if (want != null && want.isAlive() && !friendly(data, owner, want)) {
-                if (mob.getTarget() != want) mob.setTarget(want);
+            if (want != null && want.isAlive() && !friendly(data, owner, want) && mob.getTarget() != want) {
+                mob.setTarget(want);
             }
 
-            // no fight: follow the owner like a dog
-            if (mob.getTarget() == null) {
+            target = mob.getTarget();
+            if (target != null && target.isAlive()) {
+                if (!mob.getAttributes().hasAttribute(EntityAttributes.GENERIC_ATTACK_DAMAGE)) {
+                    fightLikeWolf(server, mob, target); // mob has no attack of its own
+                }
+            } else {
                 double d = mob.squaredDistanceTo(owner);
                 if (d > 24 * 24) mob.requestTeleport(owner.getX(), owner.getY(), owner.getZ());
                 else if (d > 5 * 5) mob.getNavigation().startMovingTo(owner, 1.2);
             }
         }
+    }
+
+    /** Peaceful mobs have no attack goal or damage stat, so they chase and bite the target themselves. */
+    private static void fightLikeWolf(MinecraftServer server, MobEntity mob, LivingEntity target) {
+        mob.getLookControl().lookAt(target, 30f, 30f);
+        if (mob.getBoundingBox().expand(0.9).intersects(target.getBoundingBox())) {
+            if (server.getTicks() >= NEXT_ATTACK.getOrDefault(mob.getUuid(), 0)) {
+                NEXT_ATTACK.put(mob.getUuid(), server.getTicks() + 20);
+                mob.swingHand(Hand.MAIN_HAND);
+                float dmg = (float) AbilitySettings.get(server, Ability.MOB_TAMER, "passive_damage");
+                target.damage(mob.getDamageSources().mobAttack(mob), dmg);
+            }
+        } else if (server.getTicks() % 10 == 0) {
+            mob.getNavigation().startMovingTo(target, 1.3);
+        }
+    }
+
+    /** True if "target" is this tamed mob's owner or another mob tamed by the same owner. */
+    public static boolean isFriendly(MobEntity mob, LivingEntity target) {
+        MinecraftServer server = mob.getServer();
+        if (server == null) return false;
+        AbilityData data = AbilityData.get(server);
+        UUID owner = data.ownerOf(mob.getUuid());
+        if (owner == null) return false;
+        return target.getUuid().equals(owner) || owner.equals(data.ownerOf(target.getUuid()));
     }
 
     private static boolean friendly(AbilityData data, ServerPlayerEntity owner, LivingEntity other) {
@@ -315,7 +369,10 @@ public final class AbilityActions {
     }
 
     private static void applyEffect(ServerPlayerEntity player, LivingEntity target, SabotageType type) {
-        target.addStatusEffect(new StatusEffectInstance(type.effect, type.durationTicks, type.amplifier, false, true, true));
+        MinecraftServer srv = player.getServer();
+        int dur = Math.max(20, (int) Math.round(type.durationTicks * AbilitySettings.get(srv, Ability.SABOTAGE, "duration_multiplier")));
+        int amp = type.amplifier + (int) Math.round(AbilitySettings.get(srv, Ability.SABOTAGE, "strength"));
+        target.addStatusEffect(new StatusEffectInstance(type.effect, dur, amp, false, true, true));
 
         ServerWorld world = (ServerWorld) target.getWorld();
         if (type.positive) {
@@ -332,7 +389,7 @@ public final class AbilityActions {
             ServerPlayNetworking.send(tp, new Payloads.SabotageHit(type.ordinal(), player.getName().getString()));
         }
 
-        int secs = type.durationTicks / 20;
+        int secs = dur / 20;
         String time = " (" + secs / 60 + ":" + String.format("%02d", secs % 60) + ")";
         msg(player, (type.positive ? "Gave " : "Sabotaged ") + target.getName().getString()
                 + (type.positive ? " " : " with ") + type.displayName + time,

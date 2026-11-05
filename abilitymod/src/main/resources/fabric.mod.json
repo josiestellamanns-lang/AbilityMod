@@ -3,7 +3,7 @@
   "id": "abilitymod",
   "version": "${version}",
   "name": "Abilities",
-  "description": "Give players special abilities with /ability give. Block Morph, Mob Tamer and Sabotage.",
+  "description": "Give players special abilities with /ability give. Block Morph, Mob Tamer, Sabotage, Decoy, Freeze and Grapple.",
   "authors": ["You"],
   "license": "MIT",
   "environment": "*",
@@ -12,6 +12,7 @@
     "client": ["com.abilitymod.client.AbilityClient"]
   },
   "mixins": [
+    "abilitymod.mixins.json",
     { "config": "abilitymod.client.mixins.json", "environment": "client" }
   ],
   "depends": {

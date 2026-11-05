@@ -1,6 +1,5 @@
 package com.abilitymod;
 
-import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
@@ -18,8 +17,14 @@ import net.minecraft.text.Text;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.UUID;
 
+/**
+ * /ability give <players> <ability|all>
+ * /ability remove <players> <ability|all>
+ * /ability list <player>
+ * /ability settings          (opens the settings screen)
+ * Aliases: /abilities and /abitity
+ */
 public final class AbilityCommand {
     private AbilityCommand() {}
 
@@ -46,13 +51,18 @@ public final class AbilityCommand {
                                             .executes(c -> change(c, false)))))
                     .then(CommandManager.literal("list")
                             .then(CommandManager.argument("targets", EntityArgumentType.player())
-                                    .executes(AbilityCommand::list)));
+                                    .executes(AbilityCommand::list)))
+                    .then(CommandManager.literal("settings")
+                            .executes(c -> {
+                                AbilitySettings.sendTo(c.getSource().getPlayerOrThrow(), true);
+                                return 1;
+                            }));
 
             LiteralCommandNode<ServerCommandSource> node = dispatcher.register(root);
-            // alias so the typo "/abitity" works too
+            dispatcher.register(CommandManager.literal("abilities")
+                    .requires(s -> s.hasPermissionLevel(2)).redirect(node));
             dispatcher.register(CommandManager.literal("abitity")
-                    .requires(s -> s.hasPermissionLevel(2))
-                    .redirect(node));
+                    .requires(s -> s.hasPermissionLevel(2)).redirect(node));
         });
     }
 

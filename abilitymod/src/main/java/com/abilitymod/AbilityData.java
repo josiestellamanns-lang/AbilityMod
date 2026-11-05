@@ -12,6 +12,7 @@ import java.util.*;
 public class AbilityData extends PersistentState {
     private final Map<UUID, Integer> masks = new HashMap<>();
     private final Map<UUID, UUID> tamed = new HashMap<>(); // mob -> owner
+    private final Map<String, Double> settings = new HashMap<>();
 
     public static final PersistentState.Type<AbilityData> TYPE =
             new PersistentState.Type<>(AbilityData::new, AbilityData::fromNbt, DataFixTypes.LEVEL);
@@ -26,6 +27,8 @@ public class AbilityData extends PersistentState {
         for (String k : a.getKeys()) d.masks.put(UUID.fromString(k), a.getInt(k));
         NbtCompound t = nbt.getCompound("tamed");
         for (String k : t.getKeys()) d.tamed.put(UUID.fromString(k), UUID.fromString(t.getString(k)));
+        NbtCompound st = nbt.getCompound("settings");
+        for (String k : st.getKeys()) d.settings.put(k, st.getDouble(k));
         return d;
     }
 
@@ -37,6 +40,9 @@ public class AbilityData extends PersistentState {
         NbtCompound t = new NbtCompound();
         tamed.forEach((k, v) -> t.putString(k.toString(), v.toString()));
         nbt.put("tamed", t);
+        NbtCompound st = new NbtCompound();
+        settings.forEach(st::putDouble);
+        nbt.put("settings", st);
         return nbt;
     }
 
@@ -75,5 +81,18 @@ public class AbilityData extends PersistentState {
 
     public List<Map.Entry<UUID, UUID>> tamedEntries() {
         return new ArrayList<>(new HashMap<>(tamed).entrySet());
+    }
+
+    public Double getSetting(String key) {
+        return settings.get(key);
+    }
+
+    public void setSetting(String key, double value) {
+        settings.put(key, value);
+        markDirty();
+    }
+
+    public void clearSetting(String key) {
+        if (settings.remove(key) != null) markDirty();
     }
 }

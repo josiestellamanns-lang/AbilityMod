@@ -2,5 +2,9 @@
   "key.categories.abilitymod": "Abilities",
   "key.abilitymod.morph": "Block Morph",
   "key.abilitymod.tame": "Tame Mob",
-  "key.abilitymod.sabotage": "Sabotage Menu"
+  "key.abilitymod.sabotage": "Sabotage Menu",
+  "key.abilitymod.decoy": "Decoy",
+  "key.abilitymod.freeze": "Freeze",
+  "key.abilitymod.grapple": "Grapple",
+  "entity.abilitymod.decoy": "Decoy"
 }

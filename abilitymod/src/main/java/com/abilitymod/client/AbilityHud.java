@@ -10,21 +10,38 @@ import net.minecraft.item.Items;
 import net.minecraft.util.Util;
 import net.minecraft.util.math.MathHelper;
 
-/** Ability bar on the left of the screen, unlock/sabotage banner at the top, and the "you got sabotaged" flash. */
+/** Ability bar on the left, banner at the top, hit flash and frozen overlay. */
 public final class AbilityHud {
     private AbilityHud() {}
 
     private static ItemStack[] icons;
+
+    /** The item used as each ability's icon (same order as the Ability enum). */
+    public static ItemStack icon(Ability a) {
+        if (icons == null) {
+            icons = new ItemStack[]{
+                    new ItemStack(Items.GRASS_BLOCK),
+                    new ItemStack(Items.LEAD),
+                    new ItemStack(Items.FERMENTED_SPIDER_EYE),
+                    new ItemStack(Items.PLAYER_HEAD),
+                    new ItemStack(Items.BLUE_ICE),
+                    new ItemStack(Items.FISHING_ROD)
+            };
+        }
+        return icons[a.ordinal()];
+    }
 
     public static void render(DrawContext ctx, RenderTickCounter tickCounter) {
         MinecraftClient mc = MinecraftClient.getInstance();
         if (mc.player == null || mc.options.hudHidden) return;
         long now = Util.getMeasuringTimeMs();
         flash(ctx, mc, now);
+        frost(ctx, mc, now);
         slots(ctx, mc, now);
         banner(ctx, mc, now);
     }
 
+    /** Colour flash when someone sabotages / buffs you. */
     private static void flash(DrawContext ctx, MinecraftClient mc, long now) {
         long t = now - ClientState.flashStart;
         if (ClientState.flashStart == 0 || t > 1800) return;
@@ -33,20 +50,29 @@ public final class AbilityHud {
         int alpha = (int) (110 * f * pulse);
         if (alpha < 6) return;
         int w = mc.getWindow().getScaledWidth(), h = mc.getWindow().getScaledHeight();
-        int rgb = ClientState.flashColor & 0xFFFFFF;
-        ctx.fill(0, 0, w, h, (alpha << 24) | rgb);
+        ctx.fill(0, 0, w, h, (alpha << 24) | (ClientState.flashColor & 0xFFFFFF));
+    }
+
+    /** Frozen-in-ice overlay for the local player. */
+    private static void frost(DrawContext ctx, MinecraftClient mc, long now) {
+        if (!ClientState.isSelfFrozen()) return;
+        int w = mc.getWindow().getScaledWidth(), h = mc.getWindow().getScaledHeight();
+        float pulse = 0.5f + 0.5f * (float) Math.sin(now / 200.0);
+        ctx.fill(0, 0, w, h, ((int) (70 + 30 * pulse) << 24) | 0x9AD8FF);
+        int edge = 28;
+        int c = (150 << 24) | 0xE8F8FF;
+        ctx.fill(0, 0, w, edge, c);
+        ctx.fill(0, h - edge, w, h, c);
+        ctx.fill(0, edge, edge, h - edge, c);
+        ctx.fill(w - edge, edge, w, h - edge, c);
+        String t = "FROZEN  " + String.format("%.1f", ClientState.selfFrozenLeftMs() / 1000.0) + "s";
+        ctx.drawCenteredTextWithShadow(mc.textRenderer, t, w / 2, h / 2 - 30, 0xFFE8F8FF);
     }
 
     private static void slots(DrawContext ctx, MinecraftClient mc, long now) {
-        if (icons == null) {
-            icons = new ItemStack[]{
-                    new ItemStack(Items.GRASS_BLOCK),
-                    new ItemStack(Items.LEAD),
-                    new ItemStack(Items.FERMENTED_SPIDER_EYE)
-            };
-        }
         TextRenderer tr = mc.textRenderer;
-        int baseY = mc.getWindow().getScaledHeight() / 2 - 40;
+        int owned = Integer.bitCount(ClientState.mask & Ability.allBits());
+        int baseY = mc.getWindow().getScaledHeight() / 2 - owned * 14;
         int n = 0;
 
         for (Ability a : Ability.values()) {
@@ -57,7 +83,7 @@ public final class AbilityHud {
             }
             if (ClientState.appearAt[i] == 0) ClientState.appearAt[i] = now;
 
-            // slide-in with overshoot
+            // slide in with a little overshoot
             float t = MathHelper.clamp((now - ClientState.appearAt[i]) / 450f, 0f, 1f);
             float c1 = 1.70158f, c3 = c1 + 1f, f = t - 1f;
             float ease = 1f + c3 * f * f * f + c1 * f * f;
@@ -78,12 +104,11 @@ public final class AbilityHud {
 
             ctx.fill(x - 1, y - 1, x + 23, y + 23, border);
             ctx.fill(x, y, x + 22, y + 22, 0xC0101018);
-            ctx.drawItem(icons[i], x + 3, y + 3);
+            ctx.drawItem(icon(a), x + 3, y + 3);
 
             if (cooling) {
                 float frac = MathHelper.clamp(left / (float) Math.max(1, ClientState.cdTotal[i]), 0f, 1f);
-                int h = (int) (22 * frac);
-                ctx.fill(x, y + 22 - h, x + 22, y + 22, 0xB0000000);
+                ctx.fill(x, y + 22 - (int) (22 * frac), x + 22, y + 22, 0xB0000000);
                 ctx.drawCenteredTextWithShadow(tr, String.valueOf(left / 1000 + 1), x + 11, y + 7, 0xFFFFFFFF);
             }
 

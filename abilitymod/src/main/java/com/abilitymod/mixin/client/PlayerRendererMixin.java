@@ -24,6 +24,10 @@ public abstract class PlayerRendererMixin {
     private void abilitymod$renderMorph(AbstractClientPlayerEntity player, float yaw, float tickDelta,
                                         MatrixStack matrices, VertexConsumerProvider vertexConsumers,
                                         int light, CallbackInfo ci) {
+        if (ClientState.HIDDEN.contains(player.getId())) {
+            ci.cancel();
+            return;
+        }
         BlockState state = ClientState.MORPHS.get(player.getId());
         if (state == null) return;
 
