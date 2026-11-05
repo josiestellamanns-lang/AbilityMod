@@ -1,7 +1,0 @@
-{
-  "required": true,
-  "package": "com.abilitymod.mixin",
-  "compatibilityLevel": "JAVA_21",
-  "mixins": ["MobEntityMixin"],
-  "injectors": { "defaultRequire": 1 }
-}
