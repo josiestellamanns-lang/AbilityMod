@@ -98,6 +98,48 @@ public final class Payloads {
         @Override public CustomPayload.Id<? extends CustomPayload> getId() { return ID; }
     }
 
+    /** The player picked a structure in the Locator screen ("stop" dismisses the guide). */
+    public record LocateRequest(String structure) implements CustomPayload {
+        public static final CustomPayload.Id<LocateRequest> ID = new CustomPayload.Id<>(Identifier.of(AbilityMod.MOD_ID, "locate_request"));
+        public static final PacketCodec<RegistryByteBuf, LocateRequest> CODEC =
+                PacketCodec.tuple(PacketCodecs.STRING, LocateRequest::structure, LocateRequest::new);
+        @Override public CustomPayload.Id<? extends CustomPayload> getId() { return ID; }
+    }
+
+    /** The client just did an air jump (server plays the effect). */
+    public record DoubleJumped(int jumpsLeft) implements CustomPayload {
+        public static final CustomPayload.Id<DoubleJumped> ID = new CustomPayload.Id<>(Identifier.of(AbilityMod.MOD_ID, "double_jumped"));
+        public static final PacketCodec<RegistryByteBuf, DoubleJumped> CODEC =
+                PacketCodec.tuple(PacketCodecs.INTEGER, DoubleJumped::jumpsLeft, DoubleJumped::new);
+        @Override public CustomPayload.Id<? extends CustomPayload> getId() { return ID; }
+    }
+
+    /** Every structure id in the game, comma separated. Opens the Locator screen. */
+    public record StructureList(String ids) implements CustomPayload {
+        public static final CustomPayload.Id<StructureList> ID = new CustomPayload.Id<>(Identifier.of(AbilityMod.MOD_ID, "structure_list"));
+        public static final PacketCodec<RegistryByteBuf, StructureList> CODEC =
+                PacketCodec.tuple(PacketCodecs.STRING, StructureList::ids, StructureList::new);
+        @Override public CustomPayload.Id<? extends CustomPayload> getId() { return ID; }
+    }
+
+    /** Where the guide is leading you. active = 0 clears it. */
+    public record LocatorInfo(String name, int x, int z, int active) implements CustomPayload {
+        public static final CustomPayload.Id<LocatorInfo> ID = new CustomPayload.Id<>(Identifier.of(AbilityMod.MOD_ID, "locator_info"));
+        public static final PacketCodec<RegistryByteBuf, LocatorInfo> CODEC =
+                PacketCodec.tuple(PacketCodecs.STRING, LocatorInfo::name, PacketCodecs.INTEGER, LocatorInfo::x,
+                        PacketCodecs.INTEGER, LocatorInfo::z, PacketCodecs.INTEGER, LocatorInfo::active, LocatorInfo::new);
+        @Override public CustomPayload.Id<? extends CustomPayload> getId() { return ID; }
+    }
+
+    /** Double jump state for this player: on/off, number of extra jumps, jump power * 100. */
+    public record DoubleJumpState(int on, int jumps, int power) implements CustomPayload {
+        public static final CustomPayload.Id<DoubleJumpState> ID = new CustomPayload.Id<>(Identifier.of(AbilityMod.MOD_ID, "double_jump_state"));
+        public static final PacketCodec<RegistryByteBuf, DoubleJumpState> CODEC =
+                PacketCodec.tuple(PacketCodecs.INTEGER, DoubleJumpState::on, PacketCodecs.INTEGER, DoubleJumpState::jumps,
+                        PacketCodecs.INTEGER, DoubleJumpState::power, DoubleJumpState::new);
+        @Override public CustomPayload.Id<? extends CustomPayload> getId() { return ID; }
+    }
+
     /** Comma separated UUIDs of the mobs this player has tamed. */
     public record TamedSync(String uuids) implements CustomPayload {
         public static final CustomPayload.Id<TamedSync> ID = new CustomPayload.Id<>(Identifier.of(AbilityMod.MOD_ID, "tamed_sync"));
@@ -119,5 +161,10 @@ public final class Payloads {
         PayloadTypeRegistry.playS2C().register(SettingsData.ID, SettingsData.CODEC);
         PayloadTypeRegistry.playS2C().register(Banner.ID, Banner.CODEC);
         PayloadTypeRegistry.playC2S().register(ChangeSetting.ID, ChangeSetting.CODEC);
+        PayloadTypeRegistry.playC2S().register(LocateRequest.ID, LocateRequest.CODEC);
+        PayloadTypeRegistry.playC2S().register(DoubleJumped.ID, DoubleJumped.CODEC);
+        PayloadTypeRegistry.playS2C().register(StructureList.ID, StructureList.CODEC);
+        PayloadTypeRegistry.playS2C().register(LocatorInfo.ID, LocatorInfo.CODEC);
+        PayloadTypeRegistry.playS2C().register(DoubleJumpState.ID, DoubleJumpState.CODEC);
     }
 }

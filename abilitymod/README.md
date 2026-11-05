@@ -12,9 +12,13 @@ Everyone starts with no abilities. Keybinds are under Options > Controls > Key B
 | Block Morph | G | Become the block you look at. Press again (look anywhere) to change back. No shadow while morphed. |
 | Mob Tamer | H | Look at any mob. Free and unlimited. Tamed mobs follow you, fight for you and never target you. Peaceful mobs fight like wolves. |
 | Sabotage | K | Menu with Players / Entities / Tamed tabs. Pick a target and a harmful or helpful effect, press GO. |
-| Decoy | B | A fake copy of you sprint-jumps the way you face while you are hidden for 10 s. |
+| Decoy | B | A slim-model fake copy of you (skin, name, armor, items) stands still, facing the way you did, while you are hidden for 10 s. |
 | Freeze | V | Everything alive within 5 blocks (not you, not your pets) is frozen in ice for 5 s. |
 | Grapple | C | Aim at a block and get pulled to it at ~20 blocks/s. Sneak to let go. |
+| Shockwave | R | Launches everything within 20 blocks (changeable) away from you. |
+| Summon | Y | Calls a flank of monsters (husks, pillagers, spiders, vindicators) that fight for you for 60 s. |
+| Double Jump | Z (toggle) | Press jump again in mid-air to jump once more. Z turns it on or off. |
+| Locator | N | A pet allay appears and a screen lists every structure. Pick one and the allay leads you there. |
 
 ## Settings screen
 `/abilities settings` shows every ability on the left and its settings on the right (cooldown, range, speed, duration...).

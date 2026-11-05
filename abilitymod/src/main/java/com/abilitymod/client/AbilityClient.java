@@ -38,7 +38,17 @@ public class AbilityClient implements ClientModInitializer {
             else if (ctx.client().currentScreen instanceof SettingsScreen screen) screen.refresh();
         });
 
+        ClientPlayNetworking.registerGlobalReceiver(Payloads.StructureList.ID, (p, ctx) -> {
+            ClientState.setStructures(p.ids());
+            ctx.client().setScreen(new LocatorScreen());
+        });
+        ClientPlayNetworking.registerGlobalReceiver(Payloads.LocatorInfo.ID,
+                (p, ctx) -> ClientState.setLocator(p.name(), p.x(), p.z(), p.active()));
+        ClientPlayNetworking.registerGlobalReceiver(Payloads.DoubleJumpState.ID,
+                (p, ctx) -> ClientState.setDoubleJump(p.on(), p.jumps(), p.power()));
+
         ClientTickEvents.START_CLIENT_TICK.register(FreezeClient::tick);
+        ClientTickEvents.START_CLIENT_TICK.register(DoubleJumpClient::tick);
         ClientTickEvents.END_CLIENT_TICK.register(Keys::tick);
         HudRenderCallback.EVENT.register(AbilityHud::render);
         ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> ClientState.reset());

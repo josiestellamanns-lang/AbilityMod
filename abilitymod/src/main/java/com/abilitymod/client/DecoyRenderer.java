@@ -12,15 +12,15 @@ import net.minecraft.client.render.entity.model.EntityModelLayers;
 import net.minecraft.client.render.entity.model.PlayerEntityModel;
 import net.minecraft.util.Identifier;
 
-/** Draws the decoy as a normal player: owner's skin, armor, held items and name tag. */
+/** Draws the decoy as a slim-model player: owner's skin, armor, held items and name tag. */
 public class DecoyRenderer extends LivingEntityRenderer<DecoyEntity, PlayerEntityModel<DecoyEntity>> {
-    private static final Identifier FALLBACK = Identifier.of("minecraft", "textures/entity/player/wide/steve.png");
+    private static final Identifier FALLBACK = Identifier.of("minecraft", "textures/entity/player/slim/alex.png");
 
     public DecoyRenderer(EntityRendererFactory.Context ctx) {
-        super(ctx, new PlayerEntityModel<>(ctx.getPart(EntityModelLayers.PLAYER), false), 0.5f);
+        super(ctx, new PlayerEntityModel<>(ctx.getPart(EntityModelLayers.PLAYER_SLIM), true), 0.5f);
         this.addFeature(new ArmorFeatureRenderer<>(this,
-                new BipedEntityModel<>(ctx.getPart(EntityModelLayers.PLAYER_INNER_ARMOR)),
-                new BipedEntityModel<>(ctx.getPart(EntityModelLayers.PLAYER_OUTER_ARMOR)),
+                new BipedEntityModel<>(ctx.getPart(EntityModelLayers.PLAYER_SLIM_INNER_ARMOR)),
+                new BipedEntityModel<>(ctx.getPart(EntityModelLayers.PLAYER_SLIM_OUTER_ARMOR)),
                 ctx.getModelManager()));
         this.addFeature(new HeldItemFeatureRenderer<>(this, ctx.getHeldItemRenderer()));
     }

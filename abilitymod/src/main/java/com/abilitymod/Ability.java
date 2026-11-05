@@ -7,7 +7,11 @@ public enum Ability {
     SABOTAGE("sabotage", "Sabotage"),
     DECOY("decoy", "Decoy"),
     FREEZE("freeze", "Freeze"),
-    GRAPPLE("grapple", "Grapple");
+    GRAPPLE("grapple", "Grapple"),
+    SHOCKWAVE("shockwave", "Shockwave"),
+    SUMMON("summon", "Summon"),
+    DOUBLE_JUMP("double_jump", "Double Jump"),
+    LOCATOR("locator", "Locator");
 
     public final String id;
     public final String displayName;

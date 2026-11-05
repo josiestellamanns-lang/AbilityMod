@@ -53,6 +53,10 @@ public final class AbilityActions {
             else if (a == Ability.DECOY) ExtraAbilities.decoy(player);
             else if (a == Ability.FREEZE) ExtraAbilities.freeze(player);
             else if (a == Ability.GRAPPLE) ExtraAbilities.grapple(player);
+            else if (a == Ability.SHOCKWAVE) ShockwaveAbility.use(player);
+            else if (a == Ability.SUMMON) SummonAbility.use(player);
+            else if (a == Ability.DOUBLE_JUMP) DoubleJumpAbility.toggle(player);
+            else if (a == Ability.LOCATOR) LocatorAbility.open(player);
         });
 
         ServerPlayNetworking.registerGlobalReceiver(Payloads.Sabotage.ID, (payload, ctx) -> {
@@ -68,6 +72,11 @@ public final class AbilityActions {
             applyEffect(player, target, type);
         });
 
+        ServerPlayNetworking.registerGlobalReceiver(Payloads.LocateRequest.ID,
+                (payload, ctx) -> LocatorAbility.locate(ctx.player(), payload.structure()));
+        ServerPlayNetworking.registerGlobalReceiver(Payloads.DoubleJumped.ID,
+                (payload, ctx) -> DoubleJumpAbility.fx(ctx.player()));
+
         ServerPlayNetworking.registerGlobalReceiver(Payloads.ChangeSetting.ID,
                 (payload, ctx) -> AbilitySettings.handleChange(ctx.player(), payload.key(), payload.value()));
 
@@ -76,6 +85,7 @@ public final class AbilityActions {
             sync(p, 0);
             sendTamed(p);
             ExtraAbilities.syncHiddenTo(p, server);
+            DoubleJumpAbility.sync(p);
             for (ServerPlayerEntity other : server.getPlayerManager().getPlayerList()) {
                 BlockState st = MORPHS.get(other.getUuid());
                 if (st != null) ServerPlayNetworking.send(p, new Payloads.Morph(other.getId(), Block.getRawIdFromState(st)));
@@ -85,6 +95,7 @@ public final class AbilityActions {
         ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
             clearMorph(handler.player);
             ExtraAbilities.onPlayerGone(handler.player);
+            LocatorAbility.onPlayerGone(handler.player);
         });
 
         // Tamed mobs and their owner never hurt each other.
@@ -101,6 +112,7 @@ public final class AbilityActions {
             if (entity instanceof ServerPlayerEntity p) {
                 clearMorph(p);
                 ExtraAbilities.onPlayerGone(p);
+                LocatorAbility.onPlayerGone(p);
             } else if (entity.getServer() != null) {
                 AbilityData d = AbilityData.get(entity.getServer());
                 UUID owner = d.ownerOf(entity.getUuid());
@@ -332,7 +344,7 @@ public final class AbilityActions {
         return o != null && o.equals(owner.getUuid());
     }
 
-    private static MobEntity findMob(MinecraftServer server, UUID id) {
+    public static MobEntity findMob(MinecraftServer server, UUID id) {
         for (ServerWorld w : server.getWorlds()) {
             Entity e = w.getEntity(id);
             if (e instanceof MobEntity m && m.isAlive()) return m;

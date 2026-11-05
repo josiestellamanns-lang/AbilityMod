@@ -8,9 +8,11 @@ import net.minecraft.block.BlockState;
 import net.minecraft.util.Util;
 import net.minecraft.util.math.MathHelper;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
@@ -38,6 +40,19 @@ public final class ClientState {
 
     /** Current ability settings from the server ("ability.setting" -> value). */
     public static final Map<String, Double> SETTINGS = new HashMap<>();
+
+    /** Every structure id (for the Locator screen). */
+    public static final List<String> STRUCTURES = new ArrayList<>();
+
+    /** The structure the guide is leading to (x/z only). */
+    public static boolean locatorActive;
+    public static String locatorName = "";
+    public static int locatorX, locatorZ;
+
+    /** Double jump state (synced from the server). */
+    public static boolean djOn = true;
+    public static int djJumps = 1;
+    public static double djPower = 0.6;
 
     public static String bannerText;
     public static int bannerColor;
@@ -181,11 +196,32 @@ public final class ClientState {
         }
     }
 
+    public static void setStructures(String csv) {
+        STRUCTURES.clear();
+        if (csv == null || csv.isEmpty()) return;
+        for (String id : csv.split(",")) STRUCTURES.add(id);
+    }
+
+    public static void setLocator(String name, int x, int z, int active) {
+        locatorActive = active != 0;
+        locatorName = name;
+        locatorX = x;
+        locatorZ = z;
+    }
+
+    public static void setDoubleJump(int on, int jumps, int power) {
+        djOn = on != 0;
+        djJumps = Math.max(1, jumps);
+        djPower = power / 100.0;
+    }
+
     public static void reset() {
         mask = 0;
         MORPHS.clear();
         MORPH_START.clear();
         TAMED.clear();
+        locatorActive = false;
+        djOn = true;
         FROZEN.clear();
         HIDDEN.clear();
         bannerText = null;

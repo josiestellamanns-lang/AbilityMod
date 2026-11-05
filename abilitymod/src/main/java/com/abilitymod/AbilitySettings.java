@@ -35,7 +35,6 @@ public final class AbilitySettings {
                 new Def("cooldown", 30, 0, 600, 1, "seconds"),
                 new Def("invisible_time", 10, 1, 120, 1, "seconds"),
                 new Def("lifetime", 20, 1, 300, 1, "seconds"),
-                new Def("speed", 1.3, 0.1, 3, 0.1, "x"),
                 new Def("health", 20, 1, 100, 1, "hp")));
         DEFS.put(Ability.FREEZE, List.of(
                 new Def("cooldown", 30, 0, 600, 1, "seconds"),
@@ -45,6 +44,19 @@ public final class AbilitySettings {
                 new Def("cooldown", 5, 0, 600, 1, "seconds"),
                 new Def("distance", 40, 5, 128, 5, "blocks"),
                 new Def("speed", 20, 1, 40, 1, "blocks/sec")));
+        DEFS.put(Ability.SHOCKWAVE, List.of(
+                new Def("cooldown", 30, 0, 600, 1, "seconds"),
+                new Def("radius", 20, 1, 64, 1, "blocks"),
+                new Def("strength", 2.0, 0.1, 6, 0.1, "power")));
+        DEFS.put(Ability.SUMMON, List.of(
+                new Def("cooldown", 60, 0, 600, 1, "seconds"),
+                new Def("count", 5, 1, 12, 1, "monsters"),
+                new Def("duration", 60, 5, 600, 5, "seconds")));
+        DEFS.put(Ability.DOUBLE_JUMP, List.of(
+                new Def("jumps", 1, 1, 5, 1, "extra jumps"),
+                new Def("power", 0.6, 0.2, 1.5, 0.1, "jump power")));
+        DEFS.put(Ability.LOCATOR, List.of(
+                new Def("search_radius", 100, 10, 250, 10, "chunks")));
     }
 
     public static List<Def> defs(Ability a) {
@@ -119,5 +131,6 @@ public final class AbilitySettings {
             }
         }
         sendTo(player, false);
+        DoubleJumpAbility.syncAll(player.getServer());
     }
 }

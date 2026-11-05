@@ -66,12 +66,11 @@ public final class ExtraAbilities {
 
         double invis = AbilitySettings.get(server, Ability.DECOY, "invisible_time");
         double life = AbilitySettings.get(server, Ability.DECOY, "lifetime");
-        double speed = AbilitySettings.get(server, Ability.DECOY, "speed");
         double health = AbilitySettings.get(server, Ability.DECOY, "health");
 
         DecoyEntity d = new DecoyEntity(AbilityMod.DECOY, world);
-        d.refreshPositionAndAngles(player.getX(), player.getY(), player.getZ(), player.getYaw(), 0f);
-        d.configure(player.getYaw(), (int) Math.round(life * 20), speed);
+        d.refreshPositionAndAngles(player.getX(), player.getY(), player.getZ(), player.getYaw(), player.getPitch());
+        d.configure(player.getYaw(), player.getPitch(), (int) Math.round(life * 20));
         d.getAttributeInstance(EntityAttributes.GENERIC_MAX_HEALTH).setBaseValue(health);
         d.setHealth((float) health);
 
@@ -89,10 +88,12 @@ public final class ExtraAbilities {
         world.spawnEntity(d);
 
         world.spawnParticles(ParticleTypes.POOF, player.getX(), player.getY() + 0.9, player.getZ(), 25, 0.4, 0.5, 0.4, 0.05);
+        world.spawnParticles(ParticleTypes.PORTAL, player.getX(), player.getY() + 1.0, player.getZ(), 40, 0.4, 0.8, 0.4, 0.5);
+        world.spawnParticles(ParticleTypes.PORTAL, d.getX(), d.getY() + 1.0, d.getZ(), 40, 0.4, 0.8, 0.4, 0.5);
         world.playSound(null, player.getBlockPos(), SoundEvents.ENTITY_ENDERMAN_TELEPORT, SoundCategory.PLAYERS, 0.7f, 1.6f);
 
         setHidden(player, true, (int) Math.round(invis * 20));
-        AbilityActions.msg(player, "Decoy sent! You're hidden for " + (int) invis + "s", Formatting.GREEN);
+        AbilityActions.msg(player, "Decoy placed! You're hidden for " + (int) invis + "s", Formatting.GREEN);
         AbilityActions.startCooldown(player, Ability.DECOY);
     }
 

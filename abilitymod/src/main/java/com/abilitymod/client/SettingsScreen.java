@@ -25,7 +25,7 @@ import java.util.Map;
  */
 public class SettingsScreen extends Screen {
     private static final int W = 400, H = 272;
-    private static final int TAB_X = 10, TAB_W = 108, TAB_Y = 46, TAB_H = 24, TAB_GAP = 4;
+    private static final int TAB_X = 10, TAB_W = 108, TAB_Y = 46, TAB_H = 20, TAB_GAP = 2;
     private static final int ROW_Y = 74, ROW_H = 32;
 
     private final long openedAt = Util.getMeasuringTimeMs();
@@ -182,8 +182,8 @@ public class SettingsScreen extends Screen {
             int bg = sel ? 0xFF2B3345 : hov ? 0xFF232A3A : 0xFF1B2130;
             ctx.fill(tx, ty, tx + TAB_W, ty + TAB_H, ((int) (p * 255) << 24) | bg & 0xFFFFFF);
             if (sel) ctx.fill(tx, ty, tx + 3, ty + TAB_H, 0xFF7FB4FF);
-            ctx.drawItem(AbilityHud.icon(a), tx + 6, ty + 4);
-            ctx.drawTextWithShadow(textRenderer, a.displayName, tx + 28, ty + 8, (pa << 24) | (sel ? 0xFFFFFF : 0xA8ADBD));
+            ctx.drawItem(AbilityHud.icon(a), tx + 6, ty + 2);
+            ctx.drawTextWithShadow(textRenderer, a.displayName, tx + 28, ty + 6, (pa << 24) | (sel ? 0xFFFFFF : 0xA8ADBD));
         }
 
         // selected ability header

@@ -28,10 +28,14 @@ public class AbilityMod implements ModInitializer {
         Payloads.register();
         AbilityCommand.register();
         AbilityActions.register();
+        SummonAbility.register();
+        LocatorAbility.register();
         ServerTickEvents.END_SERVER_TICK.register(server -> {
             Fx.tick();
             AbilityActions.tickTamed(server);
             ExtraAbilities.tick(server);
+            SummonAbility.tick(server);
+            LocatorAbility.tick(server);
         });
     }
 }

@@ -6,5 +6,9 @@
   "key.abilitymod.decoy": "Decoy",
   "key.abilitymod.freeze": "Freeze",
   "key.abilitymod.grapple": "Grapple",
-  "entity.abilitymod.decoy": "Decoy"
+  "entity.abilitymod.decoy": "Decoy",
+  "key.abilitymod.shockwave": "Shockwave",
+  "key.abilitymod.summon": "Summon",
+  "key.abilitymod.double_jump": "Double Jump (toggle)",
+  "key.abilitymod.locator": "Locator"
 }

@@ -25,7 +25,11 @@ public final class AbilityHud {
                     new ItemStack(Items.FERMENTED_SPIDER_EYE),
                     new ItemStack(Items.PLAYER_HEAD),
                     new ItemStack(Items.BLUE_ICE),
-                    new ItemStack(Items.FISHING_ROD)
+                    new ItemStack(Items.FISHING_ROD),
+                    new ItemStack(Items.WIND_CHARGE),
+                    new ItemStack(Items.ZOMBIE_HEAD),
+                    new ItemStack(Items.FEATHER),
+                    new ItemStack(Items.COMPASS)
             };
         }
         return icons[a.ordinal()];
@@ -39,6 +43,7 @@ public final class AbilityHud {
         frost(ctx, mc, now);
         slots(ctx, mc, now);
         banner(ctx, mc, now);
+        locator(ctx, mc, now);
     }
 
     /** Colour flash when someone sabotages / buffs you. */
@@ -72,7 +77,9 @@ public final class AbilityHud {
     private static void slots(DrawContext ctx, MinecraftClient mc, long now) {
         TextRenderer tr = mc.textRenderer;
         int owned = Integer.bitCount(ClientState.mask & Ability.allBits());
-        int baseY = mc.getWindow().getScaledHeight() / 2 - owned * 14;
+        int screenH = mc.getWindow().getScaledHeight();
+        int pitch = Math.min(28, (screenH - 24) / Math.max(1, owned));
+        int baseY = (screenH - owned * pitch) / 2;
         int n = 0;
 
         for (Ability a : Ability.values()) {
@@ -88,7 +95,7 @@ public final class AbilityHud {
             float c1 = 1.70158f, c3 = c1 + 1f, f = t - 1f;
             float ease = 1f + c3 * f * f * f + c1 * f * f;
             int x = (int) (-44 + (6 + 44) * ease);
-            int y = baseY + n * 28;
+            int y = baseY + n * pitch;
             n++;
 
             long left = ClientState.cooldownLeftMs(a);
@@ -114,8 +121,11 @@ public final class AbilityHud {
 
             String key = Keys.forAbility(a).getBoundKeyLocalizedText().getString();
             boolean active = a == Ability.BLOCK_MORPH && ClientState.MORPHS.containsKey(mc.player.getId());
-            String label = "[" + key + "] " + a.displayName + (active ? "  (ACTIVE)" : "");
-            int color = active ? 0xFF7CFFB2 : cooling ? 0xFF888888 : 0xFFFFFFFF;
+            boolean toggle = a == Ability.DOUBLE_JUMP;
+            String label = "[" + key + "] " + a.displayName
+                    + (active ? "  (ACTIVE)" : toggle ? (ClientState.djOn ? "  (ON)" : "  (OFF)") : "");
+            int color = active || (toggle && ClientState.djOn) ? 0xFF7CFFB2
+                    : toggle ? 0xFFFF7A7A : cooling ? 0xFF888888 : 0xFFFFFFFF;
             ctx.drawTextWithShadow(tr, label, x + 28, y + 7, color);
         }
     }
@@ -141,6 +151,23 @@ public final class AbilityHud {
         ctx.fill(cx - w / 2 - 1, y - 1, cx + w / 2 + 1, y + 21, 0xFF000000 | rgb);
         ctx.fill(cx - w / 2, y, cx + w / 2, y + 20, 0xE0101018);
         ctx.drawCenteredTextWithShadow(tr, ClientState.bannerText, cx, y + 6, 0xFF000000 | rgb);
+    }
+
+    /** "Guide: Village Plains | 523 blocks" under the banner while the allay is leading you somewhere. */
+    private static void locator(DrawContext ctx, MinecraftClient mc, long now) {
+        if (!ClientState.locatorActive) return;
+        double dx = ClientState.locatorX + 0.5 - mc.player.getX();
+        double dz = ClientState.locatorZ + 0.5 - mc.player.getZ();
+        String text = "Guide: " + ClientState.locatorName + "  |  " + (int) Math.sqrt(dx * dx + dz * dz) + " blocks"
+                + "  (X " + ClientState.locatorX + "  Z " + ClientState.locatorZ + ")";
+        TextRenderer tr = mc.textRenderer;
+        int w = tr.getWidth(text) + 16;
+        int cx = mc.getWindow().getScaledWidth() / 2;
+        float pulse = 0.5f + 0.5f * (float) Math.sin(now / 300.0);
+        int accent = lerp(0xFF3AD0C0, 0xFF7FFFD4, pulse);
+        ctx.fill(cx - w / 2 - 1, 29, cx + w / 2 + 1, 46, accent);
+        ctx.fill(cx - w / 2, 30, cx + w / 2, 45, 0xD0101820);
+        ctx.drawCenteredTextWithShadow(tr, text, cx, 34, 0xFF7FFFD4);
     }
 
     private static float ease(float t) {

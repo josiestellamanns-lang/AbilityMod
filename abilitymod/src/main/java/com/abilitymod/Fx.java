@@ -59,7 +59,7 @@ public final class Fx {
         start(new Anim() {
             @Override void step() {
                 double r = 0.3 + maxRadius * t / max;
-                int n = 20;
+                int n = Math.min(72, Math.max(20, (int) (r * 5)));
                 for (int i = 0; i < n; i++) {
                     double a = i * Math.PI * 2 / n;
                     world.spawnParticles(particle, entity.getX() + Math.cos(a) * r, entity.getY() + 0.15,
